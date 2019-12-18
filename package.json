@@ -1,0 +1,30 @@
+{
+  "name": "ds1tracker",
+  "version": "1.0.0",
+  "description": "Site to publically track the position of DS1",
+  "main": "index.js",
+  "dependencies": {
+    "copy-webpack-plugin": "^5.1.1",
+    "d3": "^5.14.2",
+    "satellite.js": "^3.0.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.9.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack-dev-server --open",
+    "start": "webpack -p"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atikinf/DS1Tracker.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/atikinf/DS1Tracker/issues"
+  },
+  "homepage": "https://github.com/atikinf/DS1Tracker#readme"
+}
