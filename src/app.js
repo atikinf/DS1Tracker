@@ -1,43 +1,12 @@
 import * as d3 from 'd3';
 import * as satellite from 'satellite.js';
 
-// ToDo: Tweak width
+// Potential ToDo: Tweak width
 const width = window.innerWidth * 0.95;
-const url = 'https://www.space-track.org/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/25544/orderby/TLE_LINE1%20ASC/format/tle';
 
-// Get TLE
-let tle = '';
-d3.text(url)
-.then(function(text) { 
-    console.log(text);
-    tle = text;
-    return console.log(tle);
-})
-.catch(e => {
-    return console.warn(e);
-});
-
-// Temporarily hardcoded:
-const tle1 = '1 25544U 98067A   19352.59085716 -.00000266  00000-0  33982-5 0  9996';
-const tle2 = '2 25544  51.6429 167.1127 0007479  50.0306  57.7349 15.50120604203863';
-
-const satrec = satellite.twoline2satrec(tle1, tle2);
-const gmst = satellite.gstime(new Date());
-
-// Generate ground path array
+// Ground track parameters
 const size = 30;
 const intervals = Array.from({length: size}, (x,i) => 2 * (i - size / 2));
-const currentDate = new Date();
-const trackArr = intervals.map(function(x) {
-    const positionEci = satellite.propagate(satrec, 
-                                            datePlusInterval(currentDate, x)).position;
-    const positionGeodetic = satellite.eciToGeodetic(positionEci, gmst);
-    return [Number(satellite.degreesLong(positionGeodetic.longitude)), 
-            Number(satellite.degreesLat(positionGeodetic.latitude))];
-});
-
-// Current altitude in kilometers
-const altitude = satellite.eciToGeodetic(satellite.propagate(satrec, currentDate).position).height;
 
 // Add canvas and its container to DOM
 const canvasContainer = d3.select('body').append('div')
@@ -56,23 +25,59 @@ const path = d3.geoPath()
     .projection(projection)
     .context(context);
 
-const earth = d3.image(
-    "https://gist.githubusercontent.com/jake-low/d519e00853b15e9cec391c3dab58e77f/raw/6e796038e4f34524059997f8e1f1c42ea289d805/ne1-small.png",
-    {crossOrigin: "anonymous"})
-    .then(function(img) {
-        context.lineWidth = 1 + width / 2000;
+// const url = 'https://www.amsat.org/tle/current/nasa.all';
+const api = '/api/tle';
 
-        // Draw map
-        context.drawImage(img, 0, 0, img.width, img.height,
-                               0, 0, width, width / 2);
+// Get TLE
+d3.json(api)
+.then((data) => { 
+    console.log(data);
+    return data.tle;
+})
+.then((tle) => {
+    const tleSplit = tle.split(/\r?\n/);
+    const tle1 = tleSplit[0];
+    const tle2 = tleSplit[1];
 
-        drawGroundPath(context, path, trackArr);
-        drawIntervalText(context, trackArr);
+    return satellite.twoline2satrec(tle1, tle2);
+})
+.then((satrec) => {
+    const gmst = satellite.gstime(new Date());
 
-        const satCoords = [trackArr[size / 2 + 1][0], trackArr[size / 2 + 1][1]];
-        drawSatellite(context, satCoords);
-        drawVisibleArea(context, path, satCoords);
+    // Generate ground path array
+    const currentDate = new Date();
+    const trackArr = intervals.map(function(x) {
+        const positionEci = satellite.propagate(satrec, 
+                                                datePlusInterval(currentDate, x)).position;
+        const positionGeodetic = satellite.eciToGeodetic(positionEci, gmst);
+        return [Number(satellite.degreesLong(positionGeodetic.longitude)), 
+                Number(satellite.degreesLat(positionGeodetic.latitude))];
     });
+
+    // Current altitude in kilometers
+    const altitude = satellite.eciToGeodetic(satellite.propagate(satrec, currentDate).position).height;
+
+    const earth = d3.image(
+        "https://gist.githubusercontent.com/jake-low/d519e00853b15e9cec391c3dab58e77f/raw/6e796038e4f34524059997f8e1f1c42ea289d805/ne1-small.png",
+        {crossOrigin: "anonymous"})
+        .then(function(img) {
+            context.lineWidth = 1 + width / 2000;
+    
+            // Draw map
+            context.drawImage(img, 0, 0, img.width, img.height,
+                                   0, 0, width, width / 2);
+    
+            drawGroundPath(context, path, trackArr);
+            drawIntervalText(context, trackArr);
+    
+            const satCoords = [trackArr[size / 2 + 1][0], trackArr[size / 2 + 1][1]];
+            drawSatellite(context, satCoords);
+            drawVisibleArea(context, path, satCoords, altitude);
+        });
+})
+.catch((e) => {
+    return console.log(e);
+})
 
 // Draw satellite ground path
 function drawGroundPath(context, path, trackArr) {
@@ -122,7 +127,7 @@ function drawSatellite(context, satCoords) {
 }
 
 // Draw a curve denoting the ground visible by the satellite
-function drawVisibleArea(context, path, satCoords) {
+function drawVisibleArea(context, path, satCoords, altitude) {
     context.strokeStyle = `rgba(255, 0, 0, 1)`;
     // Calculate visible angle
     const earthRadius = 6356;

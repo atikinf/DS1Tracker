@@ -3,11 +3,10 @@ Site to publically track the position of DS1
 
 Run `npm install` to install the required modules.
 
+Then, add an n2yo.com API key in `server.js` to allow for fetching the TLE (getting a key is super easy).
+
 Once that's done, you can run `npm run dev` to start a basic dev server and view the page.
 
-Currently, a week old ISS (Zarya) TLE is hardcoded into app.js because a CORS issue is keeping us from getting live TLE data,
-shouldn't be too hard to fix.
-
 ToDo: 
-* Solve CORS issue with webpack dev server (maybe switch to node server).
-* Clean up the logic to pull the TLE once the CORS thing is solved.
+* Potentially clean up map so it looks nicer
+* Maaybe switch to React or something so that the structure of things makes more sense. Probably not worth it.

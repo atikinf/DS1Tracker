@@ -6,6 +6,8 @@
   "dependencies": {
     "copy-webpack-plugin": "^5.1.1",
     "d3": "^5.14.2",
+    "express": "^4.17.1",
+    "request": "^2.88.0",
     "satellite.js": "^3.0.1",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10",
@@ -14,7 +16,7 @@
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "webpack-dev-server --open",
+    "dev": "node server.js & webpack-dev-server --open",
     "start": "webpack -p"
   },
   "repository": {
