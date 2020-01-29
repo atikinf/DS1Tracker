@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import * as satellite from 'satellite.js';
 
+
 // Potential ToDo: Tweak width
 const width = window.innerWidth * 0.95;
 
@@ -25,59 +26,52 @@ const path = d3.geoPath()
     .projection(projection)
     .context(context);
 
-// const url = 'https://www.amsat.org/tle/current/nasa.all';
-const api = '/api/tle';
 
-// Get TLE
-d3.json(api)
-.then((data) => { 
-    console.log(data);
-    return data.tle;
-})
-.then((tle) => {
-    const tleSplit = tle.split(/\r?\n/);
-    const tle1 = tleSplit[0];
-    const tle2 = tleSplit[1];
+// var json is passed in through index.php
+// Parse TLE
+const tle = json.tle;
+const tleSplit = tle.split(/\r?\n/);
+const tle1 = tleSplit[0];
+const tle2 = tleSplit[1];
 
-    return satellite.twoline2satrec(tle1, tle2);
-})
-.then((satrec) => {
-    const gmst = satellite.gstime(new Date());
+const satrec = satellite.twoline2satrec(tle1, tle2);
 
-    // Generate ground path array
-    const currentDate = new Date();
-    const trackArr = intervals.map(function(x) {
-        const positionEci = satellite.propagate(satrec, 
-                                                datePlusInterval(currentDate, x)).position;
-        const positionGeodetic = satellite.eciToGeodetic(positionEci, gmst);
-        return [Number(satellite.degreesLong(positionGeodetic.longitude)), 
-                Number(satellite.degreesLat(positionGeodetic.latitude))];
+const gmst = satellite.gstime(new Date());
+
+// Generate ground path array
+const currentDate = new Date();
+const trackArr = intervals.map(function(x) {
+    const positionEci = satellite.propagate(satrec, 
+                                            datePlusInterval(currentDate, x)).position;
+    const positionGeodetic = satellite.eciToGeodetic(positionEci, gmst);
+    return [Number(satellite.degreesLong(positionGeodetic.longitude)), 
+            Number(satellite.degreesLat(positionGeodetic.latitude))];
+});
+
+// Current altitude in kilometers
+const altitude = satellite.eciToGeodetic(satellite.propagate(satrec, currentDate).position).height;
+
+const earth = d3.image(
+    "https://gist.githubusercontent.com/jake-low/d519e00853b15e9cec391c3dab58e77f/raw/6e796038e4f34524059997f8e1f1c42ea289d805/ne1-small.png",
+    {crossOrigin: "anonymous"})
+    .then(function(img) {
+        context.lineWidth = 1 + width / 2000;
+
+        // Draw map
+        context.drawImage(img, 0, 0, img.width, img.height,
+                               0, 0, width, width / 2);
+
+        drawGroundPath(context, path, trackArr);
+        drawIntervalText(context, trackArr);
+
+        const satCoords = [trackArr[size / 2 + 1][0], trackArr[size / 2 + 1][1]];
+        drawSatellite(context, satCoords);
+        drawVisibleArea(context, path, satCoords, altitude);
+    })
+    .catch((e) => {
+        return console.log(e);
     });
 
-    // Current altitude in kilometers
-    const altitude = satellite.eciToGeodetic(satellite.propagate(satrec, currentDate).position).height;
-
-    const earth = d3.image(
-        "https://gist.githubusercontent.com/jake-low/d519e00853b15e9cec391c3dab58e77f/raw/6e796038e4f34524059997f8e1f1c42ea289d805/ne1-small.png",
-        {crossOrigin: "anonymous"})
-        .then(function(img) {
-            context.lineWidth = 1 + width / 2000;
-    
-            // Draw map
-            context.drawImage(img, 0, 0, img.width, img.height,
-                                   0, 0, width, width / 2);
-    
-            drawGroundPath(context, path, trackArr);
-            drawIntervalText(context, trackArr);
-    
-            const satCoords = [trackArr[size / 2 + 1][0], trackArr[size / 2 + 1][1]];
-            drawSatellite(context, satCoords);
-            drawVisibleArea(context, path, satCoords, altitude);
-        });
-})
-.catch((e) => {
-    return console.log(e);
-})
 
 // Draw satellite ground path
 function drawGroundPath(context, path, trackArr) {
@@ -134,7 +128,6 @@ function drawVisibleArea(context, path, satCoords, altitude) {
     const angle = Math.acos(earthRadius / earthRadius + altitude);
     const area = d3.geoCircle().center(satCoords)
                                .radius(15)(angle);
-    console.log(area);
     context.beginPath();
     path(area);
     context.stroke();
