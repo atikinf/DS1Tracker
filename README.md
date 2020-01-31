@@ -1,4 +1,6 @@
 # DS1Tracker
+Note: some of the code has been mangled to make hosting it easier so the instructions below don't fully work.
+
 Site to publically track the position of DS1
 
 Run `npm install` to install the required modules.
